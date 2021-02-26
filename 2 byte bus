@@ -1,0 +1,114 @@
+psect	code, abs
+
+main:
+	org	0x0
+	goto	start
+
+	org	0x100		    ; Main code starts here at address 0x100
+start:
+		;set up PORTs;
+	movlw	0x00
+	movwf	TRISD, A	    ; set PORTD as output
+	movlb	0x0d
+	bsf	RDPU
+	
+	movlw	0x00
+	movwf	TRISH, A	    ;set PORTH as output
+	
+	movlw	0x00
+	movwf	TRISC, A	    ;set PORTC as output
+
+
+	setf		TRISE		; Tri-state PortE	 	
+	banksel 	PADCFG1		; PADCFG1 is not in Access Bank!!
+	bsf		REPU		; PortE pull-ups on 
+	movlb		0x00		; set BSR back to Bank 0
+
+		;set control line values for different read/write functions;
+		
+	CP1h EQU 0x0f			; EO1 high, CP1 high, EO2 high, CP2 high    1111
+	CP1l EQU 0x0b			; EO1 high, CP1 low, EO2 high, CP2 high	    1011
+	EO1h EQU 0x0f			; EO1 high, CP1 high, EO2 high, CP2 high    1111
+	EO1l EQU 0x07			; EO1 low, CP1 high, EO2 high, CP2 high	    0111
+ 
+	CP2h EQU 0x0f			; EO1 high, CP1 high, EO2 high, CP2 high    1111
+	CP2l EQU 0x0e			; EO1 high, CP1 high, EO2 high, CP2 low	    1110
+	EO2h EQU 0x0f			; EO1 high, CP1 high, EO2 high, CP2 high    1111
+	EO2l EQU 0x0d			; EO1 high, CP1 high, EO2 low, CP2 high	    1101
+
+		;delay subroutine file register;
+		
+	movlw	0x05			; number of counts to delay by
+	movwf	0x20			; file register for delay subroutine countdown
+
+		;write data to memory1;
+	movlw	CP1h			
+	movwf	LATD, A			; set all control lines to high
+	clrf	TRISE			; set PORTE to output
+	movlw	0x77			
+	movwf	LATE			; load data onto LATE
+	call	cp1			; copy data into memory chip 1
+	;setf	TRISE			; set PORTE to tri-state
+	
+		;write data to memory2;
+	clrf	TRISE
+	movlw	0x99			; load data onto LATE
+	movwf	LATE
+	call	cp2			;copy data onto memory chip 2
+	setf	TRISE			; set PORTE to tri-state
+	
+		;Read data from memory1;
+	call	oe1l			;enable output on memory chip 1;or oel1 depending on which you want to read
+	movff	PORTE, PORTC		;output input from PORTE onto PORTC 
+	call	oe1h			;disable output one memory 1
+
+		;read data from memory2;
+	call	oe2l			;enable output on memory2
+	movff	PORTE, PORTH		;output the input from memory2 on PORTE to PORTH
+	
+	goto	$
+	
+		;delay subroutines for changing control line values (CP and EO);
+		
+cp1:	call	delay	;lower CP1* and then raise it after a delay, clock in memory1
+	movlw	CP1l
+	movwf	LATD, A
+	call	delay
+	movlw	CP1h
+	movwf	LATD, A
+	return
+	
+cp2:	call	delay	;lower CP2* and then raise it after a delay, clock in memory2
+	movlw	CP2l
+	movwf	LATD, A
+	call	delay
+	movlw	CP2h
+	movwf	LATD, A
+	return
+
+oe1l:	call	delay	 ;lower OE1, enable output1
+	movlw	EO1l
+	movwf	LATD, A
+	return
+	
+oe1h:	call	delay	;raise OE1, disable output1
+	movlw	EO1h
+	movwf	LATD, A
+	return
+	
+oe2l:	call	delay	;lower OE2, enable output2
+	movlw	EO2l
+	movwf	LATD, A
+	return
+	
+oe2h:	call	delay	;raise OE2, disable output2
+	movlw	EO2h
+	movwf	LATD, A
+	return
+
+delay:	decfsz	0x20, A	; decrement until zero
+	bra	delay
+	return
+
+
+	end	main
