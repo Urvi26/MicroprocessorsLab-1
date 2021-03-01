@@ -1,0 +1,37 @@
+#include <xc.inc>
+psect	code, abs	
+main: 	org 0x0
+ 	goto	setup
+	org 0x100
+
+setup:  movlw	0x30	; delay value
+	movwf   0x21	; moving delay value into delay file register
+	
+	movlw	0x00
+	movwf	TRISH
+	
+	setf	TRISE
+	banksel	PADCFG1
+	bsf REPU
+	movlb	0x00
+	
+	call delay
+	
+	clrf	LATE
+	
+	call delay
+	
+	movlw	0x0f
+	movwf	TRISE
+	
+	goto	$
+	
+start:	movf PORTE, W, A
+	movwf	PORTH
+	
+delay:	decfsz	0x21
+	bra delay
+	return
+ 
+
+	end main
