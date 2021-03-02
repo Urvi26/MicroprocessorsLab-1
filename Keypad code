@@ -1,5 +1,4 @@
 #include <xc.inc>
-
 psect	code, abs	
 main: 	org 0x0
  	goto	setup
@@ -49,80 +48,77 @@ start:	movlw	0x0f
 	movwf	0x24, A
 	movf	PORTD, W, A
 	addwf	0x24, 1, 0
+	movff	0x24, PORTJ
 	
 check1:	movlw	0x01
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	11101110B   ;check value into W
     	CPFSLT	0x24
 	bra end1
+	
 	movlw	0x02
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	11101101B
 	CPFSLT	0x24
 	bra	end1
 	
 	movlw	0x03
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	11101011B   ;check value into W
     	CPFSLT	0x24
 	bra end1
  
 	movlw	0x0F
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	11100111B
 	CPFSLT	0x24
 	bra	end1
 	
 	movlw	0x04
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	11011110B   ;check value into W
     	CPFSLT	0x24
 	bra end1
  
 	movlw	0x05
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	11011101B
 	CPFSLT	0x24
 	bra	end1
 	
 	movlw	0x06
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	110110110B   ;check value into W
     	CPFSLT	0x24
 	bra end1
  
 	movlw	0x0E
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	11010111B
 	CPFSLT	0x24
 	bra	end1
 	
 	movlw	0x07
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	10111110B   ;check value into W
     	CPFSLT	0x24
 	bra end1
  
 	movlw	0x08
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	10111101B
 	CPFSLT	0x24
 	bra	end1
 	
 	movlw	0x09
-	movf	PORTC, A
+	movwf	PORTC, A
 	movlw	10111011B   ;check value into W
     	CPFSLT	0x24
 	bra end1
  
-	movlw	0x0D
-	movf	PORTC, A
-	movlw	10110111B
-	CPFSLT	0x24
-	bra	end1
 	
 	
-end1: goto	0x00	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
+end1: goto	$	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
 
 delay:	;call delayb
 	decfsz	0x21
