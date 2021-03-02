@@ -1,4 +1,4 @@
-#include <xc.inc>
+include <xc.inc>
 psect	code, abs	
 main: 	org 0x0
  	goto	setup
@@ -55,10 +55,16 @@ start:	movlw	0x0f
 	addwf	0x24, 1, 0  ; add row and column bytes and store result in WReg
 	movff	0x24, PORTJ	; check if added value is correct by reading onto PORTJ
 	
-	call checknone
-	goto	0x00	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
+	call check
+	goto	$	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
 
-check:	movlw	0x01
+check:	movlw	0xf0
+	movwf	PORTC, A
+	movlw	11111111B
+	CPFSLT	0x24
+	return
+
+	movlw	0x01
 	movwf	PORTC, A
 	movlw	11101110B   ;check value into W
     	CPFSLT	0x24
@@ -96,7 +102,7 @@ check:	movlw	0x01
 	
 	movlw	0x06
 	movwf	PORTC, A
-	movlw	110110110B   ;check value into W
+	movlw	11011011B   ;check value into W
     	CPFSLT	0x24
 	return
  
@@ -124,126 +130,35 @@ check:	movlw	0x01
     	CPFSLT	0x24
 	return
 	
-
-checknone: movlw 11111111B
-	   CPFSEQ   0x24
-	   bra check1
-	   movlw    0xf0
-	   movwf    PORTC, A
-	   return
-	
-check1:	movlw	11101110B	;check value into W
-    	CPFSEQ	0x24		;if 0x24 is equal to this value then skip next command
-	bra check2		;if 0x24 isn't equal to this value, then check against next value
-	movlw	0x01	
-	movwf	PORTC, A	;output keypad value onto PORTC
-	return			; return to main code
-
-check2:	movlw	11101101B
-	CPFSEQ	0x24
-	bra check3
-	movlw	0x02
-	movwf	PORTC, A
-	return
-	
-check3:	movlw	11101011B
-	CPFSEQ	0x24
-	bra check4
-	movlw	0x03
-	movwf	PORTC, A
-	return
-
-check4:	movlw	11011110B
-	CPFSEQ	0x24
-	bra check5
-	movlw	0x04
-	movwf	PORTC, A
-	return	
-	
-check5:	movlw	11011101B
-	CPFSEQ	0x24
-	bra check6
-	movlw	0x05
-	movwf	PORTC, A
-	return
-	
-check6:	movlw	11011011B
-	CPFSEQ	0x24
-	bra check7
-	movlw	0x06
-	movwf	PORTC, A
-	return
-
-check7:	movlw	10111110B
-	CPFSEQ	0x24
-	bra check8
-	movlw	0x07
-	movwf	PORTC, A
-	return	
-	
-check8:	movlw	10111101B
-	CPFSEQ	0x24
-	bra check9
-	movlw	0x08
-	movwf	PORTC, A
-	return
-	
-check9:	movlw	10111011B
-	CPFSEQ	0x24
-	bra checkA
-	movlw	0x09
-	movwf	PORTC, A
-	return
-	
-checkA:	movlw	01111110B
-	CPFSEQ	0x24
-	bra checkB
-	movlw	0x0A
-	movwf	PORTC, A
-	return
-
-checkB:	movlw	01111011B
-	CPFSEQ	0x24
-	bra checkC
-	movlw	0x0B
-	movwf	PORTC, A
-	return	
-	
-checkC:	movlw	01110111B
-	CPFSEQ	0x24
-	bra checkD
-	movlw	0x0C
-	movwf	PORTC, A
-	return
-	
-checkD:	movlw	10110111B
-	CPFSEQ	0x24
-	bra checkE
 	movlw	0x0D
 	movwf	PORTC, A
+	movlw	10110111B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x0A
+	movwf	PORTC, A
+	movlw	01111110B
+	CPFSLT	0x24
 	return
 	
-checkE:	movlw	11010111B
-	CPFSEQ	0x24
-	bra checkF
-	movlw	0x0E
-	movwf	PORTC, A
-	return
-
-checkF:	movlw	11100111B
-	CPFSEQ	0x24
-	bra check0
-	movlw	0x0F
-	movwf	PORTC, A
-	return	
-	
-check0:	movlw	01111101B
-	CPFSEQ	0x24
-	return
 	movlw	0x00
 	movwf	PORTC, A
+	movlw	01111101B   ;check value into W
+	CPFSLT	0x24
+	return
+ 
+	movlw	0x0B
+	movwf	PORTC, A
+	movlw	01111011B
+	CPFSLT	0x24
 	return
 	
+	movlw	0x0C
+	movwf	PORTC, A
+	movlw	01110111B   ;check value into W
+    	CPFSLT	0x24
+	return
 	
 delay:	;call delayb
 	decfsz	0x21
