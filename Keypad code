@@ -1,5 +1,9 @@
-include <xc.inc>
-psect	code, abs	
+
+    #include <xc.inc>
+    
+   
+   psect	code, abs	
+
 main: 	org 0x0
  	goto	setup
 	org 0x100
@@ -56,7 +60,7 @@ start:	movlw	0x0f
 	movff	0x24, PORTJ	; check if added value is correct by reading onto PORTJ
 	
 	call check
-	goto	$	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
+	goto	0x00	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
 
 check:	movlw	0xf0
 	movwf	PORTC, A
