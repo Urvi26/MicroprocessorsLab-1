@@ -55,7 +55,7 @@ start:	movlw	0x8A
 	movwf	0x23, 0x32	    ;most sig 8 bits of final product to 0x32
 	
 	movwf	0x32
-	call LCD_Write_Hex
+	call LCD_Write_Hex  ;creates ascii code for the hexadecimal characters and sends to LCD for display
 	movwf	0x31
 	call LCD_Write_Hex
 	movwf	0x30
