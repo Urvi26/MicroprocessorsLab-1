@@ -1,7 +1,9 @@
 
     #include <xc.inc>
     
-   
+extrn	UART_Setup, UART_Transmit_Message  ; external subroutines
+extrn	LCD_Setup, LCD_Write_Message, LCD_clear, LCD_set_pos, LCD_Send_Byte_D
+    
    psect	code, abs	
 
 main: 	org 0x0
@@ -10,6 +12,7 @@ main: 	org 0x0
 
 setup: 	movlw	0x30	; delay value
 	movwf   0x21	; moving delay value into delay file registers
+	
 	movlw	0xff
 	movwf	0x22
 	movwf	0x23
@@ -20,8 +23,8 @@ setup: 	movlw	0x30	; delay value
 	movlw	0x00
 	movwf	TRISD	;setting PORTD as an output
 	
-	movlw	0x00
-	movwf	TRISC
+	;movlw	0x00
+	;movwf	TRISC
 	
 	movlw	0x00
 	movwf	TRISJ
@@ -34,6 +37,13 @@ setup: 	movlw	0x30	; delay value
 	
 	clrf	LATE	;clear LATE
 	call delay
+	
+	bcf	CFGS	; point to Flash program memory  
+	bsf	EEPGD 	; access Flash program memory
+	call	UART_Setup	; setup UART
+	call	LCD_Setup	; setup LCD
+	
+	goto	start
 	
 start:	movlw	0x0f
 	movwf	TRISE	;set E0-E3 as input and E4-E7 as output
@@ -59,111 +69,124 @@ start:	movlw	0x0f
 	addwf	0x24, 1, 0  ; add row and column bytes and store result in WReg
 	movff	0x24, PORTJ	; check if added value is correct by reading onto PORTJ
 	
-	call check
+	call	check
+	call	LCDwrite
+	;movff	0x26, PORTC
 	goto	0x00	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
 
-check:	movlw	0xf0
-	movwf	PORTC, A
+
+LCDwrite:   movlw	0x01	; output message to UART
+	    lfsr	2, 0x26	
+	    call	UART_Transmit_Message
+	    movlw	0x41
+	    call	LCD_set_pos	;start text in second line of LCD
+	    ;movlw	0x01	; output message to LCD
+	    ;lfsr	2, 0x26
+	    movf	0x26, W, A
+	    call	LCD_Send_Byte_D
+	
+check:	movlw	0x00 ;ascii for null
+	movwf	0x26, A
 	movlw	11111111B
 	CPFSLT	0x24
 	return
 
-	movlw	0x01
-	movwf	PORTC, A
+	movlw	0x31	;ascii for 1
+	movwf	0x26, A
 	movlw	11101110B   ;check value into W
     	CPFSLT	0x24
 	return
 	
-	movlw	0x02
-	movwf	PORTC, A
+	movlw	0x32	;ascii for 2
+	movwf	0x26, A
 	movlw	11101101B
 	CPFSLT	0x24
 	return
 	
-	movlw	0x03
-	movwf	PORTC, A
+	movlw	0x33	;aascii for 3
+	movwf	0x26, A
 	movlw	11101011B   ;check value into W
     	CPFSLT	0x24
 	return
  
-	movlw	0x0F
-	movwf	PORTC, A
+	movlw	0x46	;ascii for F
+	movwf	0x26, A
 	movlw	11100111B
 	CPFSLT	0x24
 	return
 	
-	movlw	0x04
-	movwf	PORTC, A
+	movlw	0x34	;ascii for 4
+	movwf	0x26, A
 	movlw	11011110B   ;check value into W
     	CPFSLT	0x24
 	return
  
-	movlw	0x05
-	movwf	PORTC, A
+	movlw	0x35	;ascii for 5
+	movwf	0x26, A
 	movlw	11011101B
 	CPFSLT	0x24
 	return
 	
-	movlw	0x06
-	movwf	PORTC, A
+	movlw	0x36	;ascii for 6
+	movwf	0x26, A
 	movlw	11011011B   ;check value into W
     	CPFSLT	0x24
 	return
  
-	movlw	0x0E
-	movwf	PORTC, A
+	movlw	0x45	;ascii for E
+	movwf	0x26, A
 	movlw	11010111B
 	CPFSLT	0x24
 	return
 	
-	movlw	0x07
-	movwf	PORTC, A
+	movlw	0x37	;ascii for 7
+	movwf	0x26, A
 	movlw	10111110B   ;check value into W
 	CPFSLT	0x24
 	return
  
-	movlw	0x08
-	movwf	PORTC, A
+	movlw	0x38	;ascii for 8
+	movwf	0x26, A
 	movlw	10111101B
 	CPFSLT	0x24
 	return
 	
-	movlw	0x09
-	movwf	PORTC, A
+	movlw	0x39 ;ascii for 9   
+	movwf	0x26, A
 	movlw	10111011B   ;check value into W
     	CPFSLT	0x24
 	return
 	
-	movlw	0x0D
-	movwf	PORTC, A
+	movlw	0x44	;ascii for D
+	movwf	0x26, A
 	movlw	10110111B   ;check value into W
     	CPFSLT	0x24
 	return
  
-	movlw	0x0A
-	movwf	PORTC, A
+	movlw	0x41	;ascii for A
+	movwf	0x26, A
 	movlw	01111110B
 	CPFSLT	0x24
 	return
 	
-	movlw	0x00
-	movwf	PORTC, A
+	movlw	0x30	;ascii for 0
+	movwf	0x26, A
 	movlw	01111101B   ;check value into W
 	CPFSLT	0x24
 	return
  
-	movlw	0x0B
-	movwf	PORTC, A
+	movlw	0x42	;ascii for B
+	movwf	0x26, A
 	movlw	01111011B
 	CPFSLT	0x24
 	return
 	
-	movlw	0x0C
-	movwf	PORTC, A
+	movlw	0x43	;ascii for C
+	movwf	0x26, A
 	movlw	01110111B   ;check value into W
     	CPFSLT	0x24
 	return
-	
+
 delay:	;call delayb
 	decfsz	0x21
 	bra delay
