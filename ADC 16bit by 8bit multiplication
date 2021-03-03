@@ -35,10 +35,12 @@ setup:	movlw	0xff
 	goto start
 	
 start:	movlw	0x8A
-	mullw	0xD2
+	mullw	0xD2	;multiply 0x8A with 0xD2
 	movff	PRODL, 0x20 ; least sig 8 bits of product
 	movff	PRODH, 0x21 ; most sig 8 bits of product
-	mullw	0x04
+	
+	movlw	0x8A
+	mullw	0x04	;multiply 0x8A with 0x04
 	movff	PRODL, 0x22 ;least sig 8 bits of second product
 	movff	PRODH, 0x23 ; most sig 8 bits of second product
 	
