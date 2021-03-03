@@ -18,7 +18,7 @@ main:	org 0x00
 	htd EQU 0x418A
 	;call ADC_Read
 	
-setup: movlw	0xff
+setup:	movlw	0xff
 	movwf	PORTC
 	
 	movlw	0xff
@@ -50,8 +50,8 @@ start:	movlw	0x8A
 	movlw	0x00
 	addwfc	0x23, 1, 0 ; add carry bit to most sig bit of second product and store in 0x23
 	
-	movwf	0x31	    ; second least sig 8 bits of final product to 0x31
-	movwf	0x32	    ;most sig 8 bits of final product to 0x32
+	movff	0x21, 0x31	    ; second least sig 8 bits of final product to 0x31
+	movwf	0x23, 0x32	    ;most sig 8 bits of final product to 0x32
 	
 	movwf	0x32
 	call LCD_Write_Hex
