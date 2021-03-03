@@ -32,9 +32,20 @@ start:  movlw	0x8A	;least sig byte of first number
 	movwf	0x13
 	call  multiply16x16
 	
+	    ;write product to LCD;
+	movlw	40
+	call	LCD_Write_Hex
+	movlw	41
+	call	LCD_Write_Hex
+	movlw	42
+	call	LCD_Write_Hex
+	movlw	43
+	call	LCD_Write_Hex
+	
+	
 	goto $
 	
-multiply16x16:	
+multiply16x16_40_43:	
 	
 	    ;multiplying least sig byte of first number with second number;
 	movff	0x12, 0x20  ;least sig byte of second number
@@ -66,7 +77,7 @@ multiply16x16:
 	movwf	0x43	    ;move to file reg 0x43 from 0x45 so final prod is 0x40,0x41,0x42,0x43
 	
     
-multiply16x8:	
+multiply16x8_30_32:	
     
 	    ;multiplying 8bit number with least sig byte of 16bit number
 	mulwf	0x20	    ;multiply W with 0x20
