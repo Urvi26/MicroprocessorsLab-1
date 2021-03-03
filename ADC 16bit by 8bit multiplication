@@ -3,7 +3,7 @@
     
 extrn	UART_Setup, UART_Transmit_Message  ; external subroutines
 extrn	LCD_Setup, LCD_Write_Message, LCD_clear, LCD_set_pos, LCD_Send_Byte_D,LCD_Write_Hex
-extrn	ADC_Setup, ADC_Read 
+;extrn	ADC_Setup, ADC_Read 
  
     psect	udata_acs   ; reserve data space in access ram
 counter:    ds 1    ; reserve one byte for a counter variable
@@ -36,27 +36,27 @@ setup: movlw	0xff
 	
 start:	movlw	0x8A
 	mullw	0xD2
-	movff	PRODL, 0x20
-	movff	PRODH, 0x21
+	movff	PRODL, 0x20 ; least sig 8 bits of product
+	movff	PRODH, 0x21 ; most sig 8 bits of product
 	mullw	0x04
-	movff	PRODL, 0x22
-	movff	PRODH, 0x23
+	movff	PRODL, 0x22 ;least sig 8 bits of second product
+	movff	PRODH, 0x23 ; most sig 8 bits of second product
 	
-	movff	0x20, 0x30
+	movff	0x20, 0x30  ; least sig 8 bits of final product
 	
 	movf	0x22, W
-	addwf	0x21, 0, 1
-	movwf	0x31
+	addwf	0x21, 0, 1  ; add most sig of first product with least sig of second product
+	movwf	0x31	    ; second least sig bits of final product
 	
 	movlw	0x00
 	addwfc	0x23, 0, 1
-	movwf	0x32
+	movwf	0x32	    ;most sig bits of final product
 	
-	movwf	0x30
+	movwf	0x32
 	call LCD_Write_Hex
 	movwf	0x31
 	call LCD_Write_Hex
-	movwf	0x32
+	movwf	0x30
 	call LCD_Write_Hex
 	
 	goto $
