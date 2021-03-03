@@ -42,14 +42,13 @@ start:	movlw	0x8A
 	movff	PRODL, 0x22 ;least sig 8 bits of second product
 	movff	PRODH, 0x23 ; most sig 8 bits of second product
 	
-	movff	0x20, 0x30  ; move least sig 8 bits of final product to 0x30
-	
 	movf	0x22, W
 	addwf	0x21, 1, 0  ; add most sig of first product with least sig of second product and store in 0x21
 	
 	movlw	0x00
 	addwfc	0x23, 1, 0 ; add carry bit to most sig bit of second product and store in 0x23
 	
+	movff	0x20, 0x30  ; move least sig 8 bits of final product to 0x30
 	movff	0x21, 0x31	    ; second least sig 8 bits of final product to 0x31
 	movwf	0x23, 0x32	    ;most sig 8 bits of final product to 0x32
 	
