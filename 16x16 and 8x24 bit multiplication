@@ -46,7 +46,7 @@ start:  movlw	0x8A	;least sig byte of first number
 	goto $
 	
 	
-multiply24x8:	
+multiply24x8_40to43:	
     
     movf    0x13, W
     mulwf   0x10
