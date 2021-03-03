@@ -45,6 +45,35 @@ start:  movlw	0x8A	;least sig byte of first number
 	
 	goto $
 	
+	
+multiply24x8:	
+    
+    movf    0x13, W
+    mulwf   0x10
+    movff   PRODL, 0x40
+    movff   PRODH, 0x41
+    
+    movff   0x11, 0x20
+    movff   0x12, 0x21
+    movf    0x13, W
+    call    multiply16x8_30to32
+    movff   0x30, 0x42
+    movff   0x31, 0x43
+    movff   0x32, 0x44
+    
+    movf    0x42, W
+    addwf   0x41, 1, 0
+    
+    movlw   0x00
+    addwfc  0x43
+    movff   0x43, 0x42
+    
+    movlw   0x00
+    addwfc  0x44
+    movff   0x44, 0x43
+    return
+    
+    
 multiply16x16_40to43:	
 	
 	    ;multiplying least sig byte of first number with second number;
@@ -75,7 +104,7 @@ multiply16x16_40to43:
 	movlw	0x00
 	addwfc	0x45, 0, 0  ;add carry to most sig byte of second prod
 	movwf	0x43	    ;move to file reg 0x43 from 0x45 so final prod is 0x40,0x41,0x42,0x43
-	
+	return
     
 multiply16x8_30to32:	
     
@@ -96,5 +125,5 @@ multiply16x8_30to32:
 	movlw	0x00
 	addwfc	0x33, 0, 0  ;add carry bit to most sig bit of second product and store in 0x23
 	movwf	0x32	    ;move 0x33 to 0x32 so that answer is 0x30,0x31,0x32
-	
+	return
 end main
