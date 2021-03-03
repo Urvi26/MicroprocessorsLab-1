@@ -32,6 +32,8 @@ start:  movlw	0x8A	;least sig byte of first number
 	movwf	0x13
 	call  multiply16x16
 	
+	goto $
+	
 multiply16x16:	
 	
 	    ;multiplying least sig byte of first number with second number;
@@ -63,7 +65,6 @@ multiply16x16:
 	addwfc	0x45, 0, 0  ;add carry to most sig byte of second prod
 	movwf	0x43	    ;move to file reg 0x43 from 0x45 so final prod is 0x40,0x41,0x42,0x43
 	
-	goto $
     
 multiply16x8:	
     
