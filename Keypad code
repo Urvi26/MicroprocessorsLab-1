@@ -35,6 +35,9 @@ setup: 	movlw	0x30	; delay value
 	clrf	LATE	;clear LATE
 	call delay
 	
+	call UART_Setup
+	call LCD_Setup
+	
 	goto	start
 	
 start:	movlw	0x0f
@@ -62,6 +65,8 @@ start:	movlw	0x0f
 	movff	0x24, PORTJ	; check if added value is correct by reading onto PORTJ
 	
 	call	check
+	call LCD_Write
+	
 	goto	0x00	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
 
 
