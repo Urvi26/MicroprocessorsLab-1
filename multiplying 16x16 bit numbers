@@ -30,7 +30,7 @@ start:  movlw	0x8A	;least sig byte of first number
 	movwf	0x12
 	movlw	0x04	;most sig byte of second number
 	movwf	0x13
-	call  multiply16x16
+	call  multiply16x16_40to43
 	
 	    ;write product to LCD;
 	movlw	40
@@ -51,7 +51,7 @@ multiply16x16_40to43:
 	movff	0x12, 0x20  ;least sig byte of second number
 	movff	0x13, 0x21  ;most sig byte of second number   
 	movf	0x10, W		;least sig byte of first number into W
-	call	multiply16x8	;multiply 
+	call	multiply16x8_30to32	;multiply 
 	movff	0x30, 0x40	;store product in file registers
 	movff	0x31, 0x41
 	movff	0x32, 0x42
@@ -59,7 +59,7 @@ multiply16x16_40to43:
 	    ;multiplying most sig byte of first number with second number;
 	    
 	movf	0x11, W		;most sig byte of first number
-	call	multiply16x8	;multiply
+	call	multiply16x8_30to32	;multiply
 	movff	0x30, 0x43	;store product in file registers
 	movff	0x31, 0x44
 	movff	0x31, 0x45
