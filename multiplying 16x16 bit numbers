@@ -1,0 +1,88 @@
+
+    #include <xc.inc>
+    
+extrn	UART_Setup, UART_Transmit_Message  ; external subroutines
+extrn	LCD_Setup, LCD_Write_Message, LCD_clear, LCD_set_pos, LCD_Send_Byte_D,LCD_Write_Hex
+;extrn	ADC_Setup, ADC_Read 
+ 
+    psect	udata_acs   ; reserve data space in access ram
+counter:    ds 1    ; reserve one byte for a counter variable
+delay_count:ds 1    ; reserve one byte for counter in the delay routine
+    
+    psect   code,abs
+   
+main:	org 0x00
+	goto setup
+	org 0x100
+	
+	
+setup:	bcf	CFGS	; point to Flash program memory  
+	bsf	EEPGD 	; access Flash program memory
+	call LCD_Setup
+	call UART_Setup
+	
+start:  movlw	0x8A
+	movwf	0x10
+	movlw	0x41
+	movwf	0x11
+	movlw	0xD2
+	movwf	0x12
+	movlw	0x04
+	movwf	0x13
+	call  multiply16x16
+	
+	goto start
+	
+multiply16x16:	
+	movff	0x10, 0x20	;least sig byte of second number
+	movff	0x12, 0x21
+	movff	0x13, 0x22
+	call multiply16x8
+	movff	0x40, 0x50
+	movff	0x41, 0x51
+	movff	0x42, 0x52
+	
+	movff	0x11, 0x20
+	callmultiply16x8
+	movff	0x40, 0x53
+	movff	0x41, 0x54
+	movff	0x41, 0x55
+	
+	movf	0x53, W
+	addwf	0x51, 1, 0
+
+	movlw	0x54
+	addwfc	0x52, 1, 0
+	
+	movlw	0x00
+	addwfc	0x55
+	movff	0x55,0x54
+	
+	goto $
+    
+multiply16x8:	
+	movff	0x20, 0x30	;least sig byte of second number
+	movf	0x21, W
+	call multiply8x8
+	movff	0x31, 0x40
+	movff	0x32, 0x41
+	
+	movff	0x20, 0x30	;least sig byte of second number
+	movf	0x22, W
+	call multiply8x8
+	movff	0x31, 0x42
+	movff	0x32, 0x43
+	
+	movf	0x42, W
+	addwf	0x41, 1, 0  ; add most sig of first product with least sig of second product and store in 0x21
+	movlw	0x00
+	addwfc	0x43, 1, 0 ; add carry bit to most sig bit of second product and store in 0x23
+	movff	0x43, 0x42
+	
+multiply8x8:
+	mulwf   0x30
+	movff   PRODL, 0x31
+	movff   PRODH, 0x32
+    
+    
+end main
