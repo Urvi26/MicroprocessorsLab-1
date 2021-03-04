@@ -7,7 +7,13 @@ extrn	LCD_Setup, LCD_Write_Message, LCD_clear, LCD_set_pos, LCD_Send_Byte_D,LCD_
     psect	udata_acs   ; reserve data space in access ram
 counter:    ds 1    ; reserve one byte for a counter variable
 delay_count:ds 1    ; reserve one byte for counter in the delay routine
-fstl: ds 1
+kh: ds 1
+kl: ds 1
+bigl: ds 1
+bigh: ds 1
+small: ds 1
+scndl: ds 1
+scndh: ds 1
 
     psect   code,abs
    
@@ -19,34 +25,32 @@ setup:	bcf	CFGS	; point to Flash program memory
 	bsf	EEPGD 	; access Flash program memory
 	call LCD_Setup
 	call UART_Setup
-	;fstl	EQU 0x10
-	;secondbyte  EQU	0x21
 	goto start
 	
 start:  movlw	0x8A	;least sig byte of first number
-	movwf	0x20
+	movwf	kl
 	
 	movlw	0x41	;most sig byte of first number
-	;movwf	fsth
+	movwf	kh
 	
 	
 	movlw	0xD2	;least sig byte of second number
-	movwf	0x21
+	movwf	scndl
 	
 	movlw	0x04	;most sig byte of second number
-	movwf	0x22;
-	call  multiply16x16
+	movwf	scndh
+	
+	call  multiply16x16_ADRES
 	
 	    ;write product to LCD;
-	movf	0x33, W
+	movf	0x45, W
 	call	LCD_Write_Hex
-	movf	0x31, W
+	movf	0x42, W
 	call	LCD_Write_Hex
-	movf	0x30, W
+	movf	0x41, W
 	call	LCD_Write_Hex
-	;movf	0x40, W
-	;call	LCD_Write_Hex
-	
+	movf	0x40, W
+	call	LCD_Write_Hex
 	
 	goto $
 	
@@ -79,7 +83,7 @@ multiply24x8:
     return
     
     
-multiply16x16:	
+multiply16x16:
 	    ;multiplying least sig byte of first number with second number;
 	movff	0x10, 0x20		;least sig byte of first number into W
 	movff	0x12, 0x21  ;least sig byte of second number
@@ -100,9 +104,9 @@ multiply16x16:
 	    ;adding the two products to get final product;
 	    
 	movf	0x43, W	     
-	addwf	0x41, 1, 0	;adding second most sig byte of first product with least sig byte of second prod
+	addwfc	0x41, 1, 0	;adding second most sig byte of first product with least sig byte of second prod
 
-	movlw	0x44
+	movf	0x44, W
 	addwfc	0x42, 1, 0  ;adding most sig byte of first product with second least sig byte of second prod, with carry
 	
 	movlw	0x00
@@ -110,17 +114,50 @@ multiply16x16:
 	;movwf	0x43	    ;move to file reg 0x43 from 0x45 so final prod is 0x40,0x41,0x42,0x43
 	return
     
+multiply16x16_ADRES:
+	   ;multiplying least sig byte of first number with second number;
+	   
+	movff	scndl, bigl  ;least sig byte of second number
+	movff	scndh, bigh  ;most sig byte of second number  
+	
+	movff	kl, small		;least sig byte of first number into W
+	call	multiply16x8	;multiply 
+	movff	0x30, 0x40	;store product in file registers
+	movff	0x31, 0x41
+	movff	0x33, 0x42
+	
+	    ;multiplying most sig byte of first number with second number;
+	    
+	movff	kh, small		;most sig byte of first number
+	call	multiply16x8	;multiply
+	movff	0x30, 0x43	;store product in file registers
+	movff	0x31, 0x44
+	movff	0x33, 0x45
+	
+	    ;adding the two products to get final product;
+	    
+	movf	0x43, W	     
+	addwfc	0x41, 1, 0	;adding second most sig byte of first product with least sig byte of second prod
+
+	movf	0x44, W
+	addwfc	0x42, 1, 0  ;adding most sig byte of first product with second least sig byte of second prod, with carry
+	
+	movlw	0x00
+	addwfc	0x45, 1, 0  ;add carry to most sig byte of second prod
+	movwf	0x43	    ;move to file reg 0x43 from 0x45 so final prod is 0x40,0x41,0x42,0x43
+	return
+	
 multiply16x8:	
     
 	    ;multiplying 8bit number with least sig byte of 16bit number
-	movf	0x20, W
-	mulwf	0x21	    ;multiply W with 0x21
+	movf	small, W
+	mulwf	bigl	    ;multiply W with 0x21
 	movff	PRODL, 0x30 ;store product in file registers
 	movff	PRODH, 0x31
 	
 	    ;multiplying 8 bit number with most sig byte of 16 bit number
-	movf	0x20, W
-	mulwf	0x22	;multiply W with 0x22
+	movf	small, W
+	mulwf	bigh	;multiply W with 0x22
 	movff	PRODL, 0x32
 	movff	PRODH, 0x33
 	
