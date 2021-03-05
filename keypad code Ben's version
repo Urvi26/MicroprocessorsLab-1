@@ -1,0 +1,267 @@
+#include <xc.inc>
+
+extrn	UART_Setup, UART_Transmit_Message  ; external subroutines
+extrn	LCD_Setup, LCD_Write_Message, LCD_clear, LCD_set_pos, LCD_Send_Byte_D, LCD_Write_Hex, LCD_Write_Character
+
+	
+psect	udata_acs   ; reserve data space in access ram
+counter:    ds 1    ; reserve one byte for a counter variable
+delay_count:ds 1    ; reserve one byte for counter in the delay routine
+    
+psect	udata_bank4 ; reserve data anywhere in RAM (here at 0x400)
+myArray:    ds 0x80 ; reserve 128 bytes for message data
+
+psect	data    
+	; ******* myTable, data in programme memory, and its length *****
+myTable:
+	db	'H','e','l','l','o', 0x0a, 'H'
+					; message, plus carriage return
+	myTable_l   EQU	7	; length of data
+	align	2
+    
+psect	code, abs	
+rst: 	org 0x0
+ 	goto	setup
+	
+
+	; ******* Programme FLASH read Setup Code ***********************
+setup:	bcf	CFGS	; point to Flash program memory  
+	bsf	EEPGD 	; access Flash program memory
+	call	UART_Setup	; setup UART
+	call	LCD_Setup	; setup UART
+	
+	movlw	0xff	;Port D setup
+	movwf	TRISD, A
+	movwf	0x0f
+	bsf	RDPU
+	
+	movlw	0x00
+	movwf	0x50, A
+	
+	movf	PORTD, W, A
+	call	LCD_set_pos
+	
+	;goto	add
+	
+	; ******* Main programme ****************************************
+start: 	
+	lfsr	0, myArray	; Load FSR0 with address in RAM	
+	movlw	low highword(myTable)	; address of data in PM
+	movwf	TBLPTRU, A		; load upper bits to TBLPTRU
+	movlw	high(myTable)	; address of data in PM
+	movwf	TBLPTRH, A		; load high byte to TBLPTRH
+	movlw	low(myTable)	; address of data in PM
+	movwf	TBLPTRL, A		; load low byte to TBLPTRL
+	movlw	myTable_l	; bytes to read
+	movwf 	counter, A		; our counter register
+loop: 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
+	movff	TABLAT, POSTINC0; move data from TABLAT to (FSR0), inc FSR0	
+	decfsz	counter, A		; count down to zero
+	bra	loop		; keep going until finished
+		
+	movlw	myTable_l	; output message to UART
+	lfsr	2, myArray
+	call	UART_Transmit_Message
+	
+	movlw	myTable_l	; output message to LCD
+	addlw	0xff		; don't send the final carriage return to LCD
+	lfsr	2, myArray
+	call	LCD_Write_Message
+	
+add:	
+	call	Keypad_read
+	movf	0x26, W, A
+	CPFSEQ	0x50
+	call	LCDwrite
+	
+	goto	 add		; goto current line in code
+
+	; a delay subroutine if you need one, times around loop in delay_count
+delay:	decfsz	delay_count, A	; decrement until zero
+	bra	delay
+	return
+
+	;end	rst	
+
+LCDwrite:   movf    0x26, W, A
+	    call LCD_Write_Character
+	    return
+
+Keypad_read:
+	;sorting delays
+        movlw	0xff	; delay value
+	movwf   0x21	; moving delay value into delay file registers
+	movlw	0xff
+	movwf	0x22
+	movwf	0x23
+	
+	movlw	0x00
+	movwf	TRISH	; setting PORTH as an output
+	
+	movlw	0x00
+	movwf	TRISD	;setting PORTD as an output
+	
+	movlw	0x00
+	movwf	TRISC	;setting PORTC as an output
+	
+	movlw	0x00
+	movwf	TRISJ	;setting PORTJ as an output
+	
+	;setf	TRISE
+	banksel	PADCFG1	; selecting bank register
+	bsf REPU	; setting PORTE pull-ups on
+	movlb	0x00	;setting bank register back to 0
+	call delay
+	
+	clrf	LATE	;clear LATE
+	call delay
+	
+Keypad_start:	
+	movlw	0x0f
+	movwf	TRISE	;set E0-E3 as input and E4-E7 as output
+	call delay
+	
+	movf PORTE, W, A
+	movwf	PORTH	;move keyboard column data into PORTH 
+	call delay
+	
+	movf	PORTE, W, A
+	movwf	0x24, A	;copy column input to FReg 0x24
+	
+	movlw	0xf0
+	movwf	TRISE	;set E4-7 as input, E0-E3 as output
+	call delay
+	
+	movf	PORTE, W, A
+	movwf	PORTD	; move keyboard row data into PORTD
+	call delayb  
+	
+	movf	PORTE, W, A	;copy row input to Wreg 
+	
+	addwf	0x24, 1, 0  ; add row and column bytes and store result in WReg
+	movff	0x24, PORTJ	; check if added value is correct by reading onto PORTJ
+	
+	
+	
+	
+	call check
+	
+	return 
+	
+	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
+
+check:	movlw	0x00	    ;ascii code for null
+	movwf	0x26, A
+	movlw	11111111B
+	CPFSLT	0x24
+	return
+
+	movlw	0x31	    ;ascii code for 1
+	movwf	0x26, A
+	movlw	11101110B   ;check value into W
+    	CPFSLT	0x24
+	return
+	
+	movlw	0x32	    ;ascii code for 2
+	movwf	0x26, A
+	movlw	11101101B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x33	    ;ascii code for 3
+	movwf	0x26, A
+	movlw	11101011B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x46	    ;ascii code for F
+	movwf	0x26, A
+	movlw	11100111B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x34	    ;ascii code for 4
+	movwf	0x26, A
+	movlw	11011110B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x35	    ;ascii code for 5
+	movwf	0x26, A
+	movlw	11011101B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x36	    ;ascii code for 6
+	movwf	0x26, A
+	movlw	11011011B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x45	    ;ascii code for E
+	movwf	0x26, A
+	movlw	11010111B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x37	    ;ascii code for 7
+	movwf	0x26, A
+	movlw	10111110B   ;check value into W
+	CPFSLT	0x24
+	return
+ 
+	movlw	0x38	    ;ascii code for 8
+	movwf	0x26, A
+	movlw	10111101B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x39	    ;ascii code for 9
+	movwf	0x26, A
+	movlw	10111011B   ;check value into W
+    	CPFSLT	0x24
+	return
+	
+	movlw	0x44	    ;ascii code for D
+	movwf	0x26, A
+	movlw	10110111B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x41	    ;ascii code for A
+	movwf	0x26, A
+	movlw	01111110B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x30	    ;ascii code for 0
+	movwf	0x26, A
+	movlw	01111101B   ;check value into W
+	CPFSLT	0x24
+	return
+ 
+	movlw	0x42	    ;ascii code for B
+	movwf	0x26, A
+	movlw	01111011B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x43	    ;ascii code for C
+	movwf	0x26, A
+	movlw	01110111B   ;check value into W
+    	CPFSLT	0x24
+	return
+	
+delay1:	call delayb
+	decfsz	0x21
+	bra delay1
+	return
+	
+delayb:	;call delayc
+	decfsz	0x22
+	bra delayb
+	return	
+	
+delayc: decfsz	0x23
+	bra delayc
+	return
