@@ -1,6 +1,6 @@
 #include <xc.inc>
 
-global  LCD_Setup, LCD_Write_Message, LCD_clear, setpos
+global  LCD_Setup, LCD_Write_Message, LCD_Clear, LCD_Set_Position
 
 psect	udata_acs   ; named variables in access ram
 LCD_cnt_l:	ds 1   ; reserve 1 byte for variable LCD_cnt_l
@@ -15,7 +15,7 @@ LCD_counter:	ds 1   ; reserve 1 byte for counting through nessage
 
 psect	lcd_code,class=CODE
     
-LCD_clear: movlw	00000001B	; display clear
+LCD_Clear: movlw	00000001B	; display clear
 	   call	LCD_Send_Byte_I
 	   return	
     
@@ -52,7 +52,8 @@ LCD_Setup:
 	return
 		
 	
-setpos:	    call    LCD_Send_Byte_I
+LCD_Set_Position:	    
+	    call    LCD_Send_Byte_I
 	    movlw   10		; wait 40us
 	    call    LCD_delay_x4us
 	    return
