@@ -1,166 +1,217 @@
-#include <xc.inc>
+  #include<xc.inc>
+  
+extrn	UART_Setup, UART_Transmit_Message  ; external subroutines
+extrn	LCD_Setup, LCD_Write_Message, LCD_Clear, LCD_Set_Position, LCD_Send_Byte_D, LCD_Write_Character ;LCD_Write_Low_Nibble
 
-global  LCD_Setup, LCD_Write_Message, LCD_Clear, LCD_Set_Position, LCD_Send_Byte_D, LCD_Write_Character
+   psect	code, abs	
 
-psect	udata_acs   ; named variables in access ram
-LCD_cnt_l:	ds 1   ; reserve 1 byte for variable LCD_cnt_l
-LCD_cnt_h:	ds 1   ; reserve 1 byte for variable LCD_cnt_h
-LCD_cnt_ms:	ds 1   ; reserve 1 byte for ms counter
-LCD_tmp:	ds 1   ; reserve 1 byte for temporary use
-LCD_counter:	ds 1   ; reserve 1 byte for counting through nessage
+main: 	org 0x0
+ 	goto	setup
+	org 0x100
 
-	LCD_E	EQU 5	; LCD enable bit
-    	LCD_RS	EQU 4	; LCD register select bit
-
-psect	lcd_code,class=CODE
-    
-LCD_Clear: movlw	00000001B	; display clear
-	   call	LCD_Send_Byte_I
-	   return	
-	   
-LCD_Setup:
-	clrf    LATB, A
-	movlw   11000000B	    ; RB0:5 all outputs
-	movwf	TRISB, A
-	movlw   40
-	call	LCD_delay_ms	; wait 40ms for LCD to start up properly
-	movlw	00110000B	; Function set 4-bit
-	call	LCD_Send_Byte_I
-	movlw	10		; wait 40us
-	call	LCD_delay_x4us
-	movlw	00101000B	; 2 line display 5x8 dot characters
-	call	LCD_Send_Byte_I
-	movlw	10		; wait 40us
-	call	LCD_delay_x4us
-	movlw	00101000B	; repeat, 2 line display 5x8 dot characters
-	call	LCD_Send_Byte_I
-	movlw	10		; wait 40us
-	call	LCD_delay_x4us
-	movlw	00001111B	; display on, cursor on, blinking on
-	call	LCD_Send_Byte_I
-	movlw	10		; wait 40us
-	call	LCD_delay_x4us
-	movlw	00000001B	; display clear
-	call	LCD_Send_Byte_I
-	movlw	2		; wait 2ms
-	call	LCD_delay_ms
-	movlw	00000110B	; entry mode incr by 1 no shift
-	call	LCD_Send_Byte_I
-	movlw	10		; wait 40us
-	call	LCD_delay_x4us
-	return
-
-LCD_Write_Character:
-	call	LCD_Send_Byte_D
-	movlw	10
-	call	delay
-	return	
+	; ******* Programme FLASH read Setup Code ***********************
+setup:	bcf	CFGS	; point to Flash program memory  
+	bsf	EEPGD 	; access Flash program memory
+	call	UART_Setup	; setup UART
+	call	LCD_Setup	; setup UART
 	
-LCD_Set_Position:	    
-	    call    LCD_Send_Byte_I
-	    movlw   10		; wait 40us
-	    call    LCD_delay_x4us
-	    return
+	movlw	0xff	;Port D setup
+	movwf	TRISD, A
+	movwf	0x0f
+	bsf	RDPU
 	
-LCD_Write_Message:	    ; Message stored at FSR2, length stored in W
-	movwf   LCD_counter, A
-LCD_Loop_message:
-	movf    POSTINC2, W, A
-	call    LCD_Send_Byte_D
-	decfsz  LCD_counter, A
-	bra	LCD_Loop_message
-	return
+	movlw	0x00
+	movwf	TRISH
+	
+	movlw	0x00
+	movwf	0x50, A	;don't display anything on LCD when nothing on Keypad is pressed
+	
+	movf	PORTD, W, A 
+	call	LCD_Set_Position    ; set LCD position from PORTD
 
-LCD_Send_Byte_I:	    ; Transmits byte stored in W to instruction reg
-	movwf   LCD_tmp, A
-	swapf   LCD_tmp, W, A   ; swap nibbles, high nibble goes first
-	andlw   0x0f	    ; select just low nibble
-	movwf   LATB, A	    ; output data bits to LCD
-	bcf	LATB, LCD_RS, A	; Instruction write clear RS bit
-	call    LCD_Enable  ; Pulse enable Bit 
-	movf	LCD_tmp, W, A   ; swap nibbles, now do low nibble
-	andlw   0x0f	    ; select just low nibble
-	movwf   LATB, A	    ; output data bits to LCD
-	bcf	LATB, LCD_RS, A	; Instruction write clear RS bit
-        call    LCD_Enable  ; Pulse enable Bit 
-	return
-
-LCD_Send_Byte_D:	    ; Transmits byte stored in W to data reg
-	movwf   LCD_tmp, A
-	swapf   LCD_tmp, W, A	; swap nibbles, high nibble goes first
-	andlw   0x0f	    ; select just low nibble
-	movwf   LATB, A	    ; output data bits to LCD
-	bsf	LATB, LCD_RS, A	; Data write set RS bit
-	call    LCD_Enable  ; Pulse enable Bit 
-	movf	LCD_tmp, W, A	; swap nibbles, now do low nibble
-	andlw   0x0f	    ; select just low nibble
-	movwf   LATB, A	    ; output data bits to LCD
-	bsf	LATB, LCD_RS, A	; Data write set RS bit	    
-        call    LCD_Enable  ; Pulse enable Bit 
-	movlw	10	    ; delay 40us
-	call	LCD_delay_x4us
-	return
-
-LCD_Enable:	    ; pulse enable bit LCD_E for 500ns
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	bsf	LATB, LCD_E, A	    ; Take enable high
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	bcf	LATB, LCD_E, A	    ; Writes data to LCD
-	return
+	goto	start
     
-; ** a few delay routines below here as LCD timing can be quite critical ****
-LCD_delay_ms:		    ; delay given in ms in W
-	movwf	LCD_cnt_ms, A
-lcdlp2:	movlw	250	    ; 1 ms delay
-	call	LCD_delay_x4us	
-	decfsz	LCD_cnt_ms, A
-	bra	lcdlp2
-	return
-    
-LCD_delay_x4us:		    ; delay given in chunks of 4 microsecond in W
-	movwf	LCD_cnt_l, A	; now need to multiply by 16
-	swapf   LCD_cnt_l, F, A	; swap nibbles
-	movlw	0x0f	    
-	andwf	LCD_cnt_l, W, A ; move low nibble to W
-	movwf	LCD_cnt_h, A	; then to LCD_cnt_h
-	movlw	0xf0	    
-	andwf	LCD_cnt_l, F, A ; keep high nibble in LCD_cnt_l
-	call	LCD_delay
+start:	call	Keypad_Setup
+	movf	0x26, W, A
+	CPFSEQ	0x50	    ;check if input is null, skip if null
+	call	LCD_Write_Character
+	call delayd
+	goto	 start	
+
+ 
+Keypad_Setup: 
+	movlw	0x10	; delay value
+	movwf   0x10	; moving delay value into delay file registers
+	
+	movlw	0xff	;delay value
+	movwf	0x20	; moving delay value into file registers
+	movwf	0x21
+	
+	banksel	PADCFG1	; selecting bank register
+	bsf REPU	; setting PORTE pull-ups on
+	movlb	0x00	;setting bank register back to 0
+	call delay
+	
+	clrf	LATE	;clear LATE
+	call delay
+	goto Keypad_start
+	
+Keypad_start:
+	    ;trigger and read column input;
+	movlw	0x0f
+	movwf	TRISE	;set E0-E3 as input and E4-E7 as output
+	call delay
+	movff	PORTE, 0x24, A
+	
+	    ;trigger and read row input;
+	movlw	0xf0
+	movwf	TRISE	;set E4-7 as input, E0-E3 as output
+	call delay
+	movff	PORTE, 0x25, A	;copy row input to Wreg 
+	
+	    ;add row and column input'
+	movf	0x25, W, A
+	addwf	0x24, 1, 0  ; add row and column bytes and store result in WReg
+	movff	0x24, PORTH	; check if added value is correct by reading onto PORTJ
+	    
+	    ;check input to get character ascii code (stored in 0x26);
+	call check
+	
+	return 
+
+check:	movlw	0x00 ;ascii for null
+	movwf	0x26, A
+	movlw	11111111B
+	CPFSLT	0x24
 	return
 
-LCD_delay:			; delay routine	4 instruction loop == 250ns	    
-	movlw 	0x00		; W=0
-lcdlp1:	decf 	LCD_cnt_l, F, A	; no carry when 0x00 -> 0xff
-	subwfb 	LCD_cnt_h, F, A	; no carry when 0x00 -> 0xff
-	bc 	lcdlp1		; carry, then loop again
-	return			; carry reset so return
+	movlw	0x31	;ascii for 1
+	movwf	0x26, A
+	movlw	11101110B   ;check value into W
+    	CPFSLT	0x24
+	return
+	
+	movlw	0x32	;ascii for 2
+	movwf	0x26, A
+	movlw	11101101B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x33	;aascii for 3
+	movwf	0x26, A
+	movlw	11101011B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x46	;ascii for F
+	movwf	0x26, A
+	movlw	11100111B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x34	;ascii for 4
+	movwf	0x26, A
+	movlw	11011110B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x35	;ascii for 5
+	movwf	0x26, A
+	movlw	11011101B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x36	;ascii for 6
+	movwf	0x26, A
+	movlw	11011011B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x45	;ascii for E
+	movwf	0x26, A
+	movlw	11010111B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x37	;ascii for 7
+	movwf	0x26, A
+	movlw	10111110B   ;check value into W
+	CPFSLT	0x24
+	return
+ 
+	movlw	0x38	;ascii for 8
+	movwf	0x26, A
+	movlw	10111101B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x39 ;ascii for 9   
+	movwf	0x26, A
+	movlw	10111011B   ;check value into W
+    	CPFSLT	0x24
+	return
+	
+	movlw	0x44	;ascii for D
+	movwf	0x26, A
+	movlw	10110111B   ;check value into W
+    	CPFSLT	0x24
+	return
+ 
+	movlw	0x41	;ascii for A
+	movwf	0x26, A
+	movlw	01111110B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x30	;ascii for 0
+	movwf	0x26, A
+	movlw	01111101B   ;check value into W
+	CPFSLT	0x24
+	return
+ 
+	movlw	0x42	;ascii for B
+	movwf	0x26, A
+	movlw	01111011B
+	CPFSLT	0x24
+	return
+	
+	movlw	0x43	;ascii for C
+	movwf	0x26, A
+	movlw	01110111B   ;check value into W
+    	CPFSLT	0x24
+	return
+	movlw	0x00
+	movwf	0x26
+	return
 
-delay:	call delayb
-	decfsz	0x21
+delay:	;call delayb
+	decfsz	0x10
 	bra delay
 	return
 	
-delayb:	;call delayc
-	decfsz	0x22
+delaya:	call delayb
+	decfsz	0x10
+	bra delaya
+	return
+	
+delayb:	call delayc
+	decfsz	0x20
 	bra delayb
 	return	
 	
-delayc: decfsz	0x23
+delayc: decfsz	0x21
 	bra delayc
 	return
 	
-    end
-
+delayd: call delayb
+	call delayb
+	call delayb
+	call delayb
+	call delayb
+	call delayb
+	call delayb
+	call delayb
+	call delayb
+	call delayb
+	
+	end main
