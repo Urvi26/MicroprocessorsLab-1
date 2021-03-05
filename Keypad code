@@ -1,10 +1,9 @@
-
-
-    #include <xc.inc>
-    
+  #include<xc.inc>
+  
 extrn	UART_Setup, UART_Transmit_Message  ; external subroutines
-extrn	LCD_Setup, LCD_Write_Message, LCD_clear, LCD_set_pos, LCD_Send_Byte_D
-    
+extrn	LCD_Setup, LCD_Write_Message, LCD_clear, LCD_set_pos, LCD_Send_Byte_D, LCD_Write_Hex, LCD_Write_Character ;LCD_Write_Low_Nibble
+
+position: ds 1
    psect	code, abs	
 
 main: 	org 0x0
@@ -35,8 +34,9 @@ setup: 	movlw	0x30	; delay value
 	clrf	LATE	;clear LATE
 	call delay
 	
-	call UART_Setup
+	;call UART_Setup
 	call LCD_Setup
+	
 	
 	goto	start
 	
@@ -64,14 +64,27 @@ start:	movlw	0x0f
 	addwf	0x24, 1, 0  ; add row and column bytes and store result in WReg
 	movff	0x24, PORTJ	; check if added value is correct by reading onto PORTJ
 	
+	movlw	0x00
+	movwf	0x15
+	movwf	0x01
+	addwf	position, 1, 0
+	movf	position, W
+	call LCD_set_pos
+	
 	call	check
-	call LCD_Write
+	call LCDwrite
+	
+	call delayb
+	call delayb
+	
+	;call check 
+	;call LCDwrite
 	
 	goto	0x00	;keep re-running code so that keys pressed can be seen almost immediately on PORTs
 
 
 LCDwrite:   movf    0x26, W, A
-	    call LCD_Write_Message
+	    call LCD_Write_Character
 	    return
  
 	
