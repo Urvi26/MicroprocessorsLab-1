@@ -12,8 +12,6 @@ kl: ds 1
 bigl: ds 1
 bigh: ds 1
 small: ds 1
-scndl: ds 1
-scndh: ds 1
 ssoutll:ds 1
 ssoutl:	ds 1
 ssouth:	ds 1
