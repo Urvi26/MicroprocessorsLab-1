@@ -1,0 +1,55 @@
+#include <xc.inc>
+	
+global	DAC_Setup, DAC_Int_Hi, DAC_delay_x4us
+    
+psect	udata_acs   
+DAC_cnt_l:	ds  1
+DAC_cnt_h:	ds  1
+    
+psect	dac_code, class=CODE
+	
+DAC_Int_Hi:	
+	btfss	TMR0IF		; check that this is timer0 interrupt
+	retfie	f		; if not then return
+	incf	LATJ, F, A	; increment PORTJ
+	call	wr
+	bcf	TMR0IF		; clear interrupt flag
+	retfie	f		; fast return from interrupt
+
+DAC_Setup:
+	clrf	TRISD, A	; Set PORTD as all outputs
+	clrf	TRISJ, A	; Set PORTJ as all outputs
+	clrf	LATJ, A		; Clear PORTJ outputs
+	movlw	10000111B	; Set timer0 to 16-bit, Fosc/4/256
+	movwf	T0CON, A	; = 62.5KHz clock rate, approx 1sec rollover
+	bsf	TMR0IE		; Enable timer0 interrupt
+	bsf	GIE		; Enable all interrupts
+	return
+
+wr:	bsf	LATD, 0	
+	movlw	10
+	call	DAC_delay_x4us
+	bcf	LATD, 0	
+	movlw	10
+	call	DAC_delay_x4us
+	return	
+	
+DAC_delay_x4us:
+	movwf	DAC_cnt_l, A
+	swapf	DAC_cnt_l, F, A
+	movlw	0x0f
+	andwf	DAC_cnt_l, W, A
+	movwf	DAC_cnt_h, A
+	movlw	0xf0
+	andwf	DAC_cnt_l, F, A
+	call	DAC_delay
+	return
+
+DAC_delay:
+	movlw	0x00
+daclp1:	decf	DAC_cnt_l, F, A
+	subwfb	DAC_cnt_h, F, A
+	bc	daclp1
+	return
+	
+    end
