@@ -1,0 +1,31 @@
+#include <xc.inc>
+	
+global	DAC_Setup, DAC_Int_Hi, DAC_delay_x4us
+    
+psect	udata_acs   
+DAC_cnt_l:	ds  1
+DAC_cnt_h:	ds  1
+clock_sec:	ds  1
+clock_min:	ds 1
+clock_hrs:	ds 1
+check_60: ds	1
+check_24: ds 1
+psect	dac_code, class=CODE
+
+LCD_write:
+	movlw	0x3c
+	movwf	0x10
+	andwf	0x0f
+	sub
+	
+	
+    
+clock_setup: 
+	movlw  0x00
+	movwf   clock_sec
+	movwf   clock_min
+	movwf   clock_hrs
+	movlw	0x3C
+	movwf	check_60
+	movlw	0x18
+	movwf	check_24
